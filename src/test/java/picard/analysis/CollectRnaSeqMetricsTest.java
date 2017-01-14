@@ -110,6 +110,8 @@ public class CollectRnaSeqMetricsTest extends CommandLineProgramTest {
         Assert.assertEquals(metrics.CORRECT_STRAND_READS, 3);
         Assert.assertEquals(metrics.INCORRECT_STRAND_READS, 4);
         Assert.assertEquals(metrics.IGNORED_READS, 1);
+        Assert.assertEquals(metrics.PCT_FIRST_READ_TRANSCRIPTION_STRAND_READS, 0.571429);
+        Assert.assertEquals(metrics.PCT_SECOND_READ_TRANSCRIPTION_STRAND_READS, 0.428571);
     }
 
     @Test
@@ -187,6 +189,8 @@ public class CollectRnaSeqMetricsTest extends CommandLineProgramTest {
                 Assert.assertEquals(metrics.CORRECT_STRAND_READS, 3);
                 Assert.assertEquals(metrics.INCORRECT_STRAND_READS, 4);
                 Assert.assertEquals(metrics.IGNORED_READS, 1);
+                Assert.assertEquals(metrics.PCT_FIRST_READ_TRANSCRIPTION_STRAND_READS, 0.571429);
+                Assert.assertEquals(metrics.PCT_SECOND_READ_TRANSCRIPTION_STRAND_READS, 0.428571);
             }
             else if (metrics.LIBRARY.equals("foo")) {
                 Assert.assertEquals(metrics.PF_ALIGNED_BASES, 216);
@@ -199,7 +203,8 @@ public class CollectRnaSeqMetricsTest extends CommandLineProgramTest {
                 Assert.assertEquals(metrics.CORRECT_STRAND_READS, 3);
                 Assert.assertEquals(metrics.INCORRECT_STRAND_READS, 2);
                 Assert.assertEquals(metrics.IGNORED_READS, 0);
-
+                Assert.assertEquals(metrics.PCT_FIRST_READ_TRANSCRIPTION_STRAND_READS, 0.4);
+                Assert.assertEquals(metrics.PCT_SECOND_READ_TRANSCRIPTION_STRAND_READS, 0.6);
             }
             else if (metrics.LIBRARY.equals("bar")) {
                 Assert.assertEquals(metrics.PF_ALIGNED_BASES, 180);
@@ -212,7 +217,8 @@ public class CollectRnaSeqMetricsTest extends CommandLineProgramTest {
                 Assert.assertEquals(metrics.CORRECT_STRAND_READS, 0);
                 Assert.assertEquals(metrics.INCORRECT_STRAND_READS, 2);
                 Assert.assertEquals(metrics.IGNORED_READS, 1);
-
+                Assert.assertEquals(metrics.PCT_FIRST_READ_TRANSCRIPTION_STRAND_READS, 1.0);
+                Assert.assertEquals(metrics.PCT_SECOND_READ_TRANSCRIPTION_STRAND_READS, 0.0);
             }
         }
     }

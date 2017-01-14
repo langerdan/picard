@@ -1,10 +1,6 @@
 package picard.analysis.directed;
 
-import htsjdk.samtools.AlignmentBlock;
-import htsjdk.samtools.SAMFileHeader;
-import htsjdk.samtools.SAMReadGroupRecord;
-import htsjdk.samtools.SAMRecord;
-import htsjdk.samtools.SAMSequenceRecord;
+import htsjdk.samtools.*;
 import htsjdk.samtools.metrics.MetricsFile;
 import htsjdk.samtools.util.CoordMath;
 import htsjdk.samtools.util.Histogram;
@@ -232,25 +228,39 @@ public class RnaSeqMetricsCollector extends SAMRecordMultiLevelCollector<RnaSeqM
 
             // Strand-specificity is tallied on read basis rather than base at a time.  A read that aligns to more than one
             // gene is not counted.
-            if (!rec.getNotPrimaryAlignmentFlag() && overlapsExon && strandSpecificity != StrandSpecificity.NONE && overlappingGenes.size() == 1) {
+            if (overlapsExon && overlappingGenes.size() == 1) {
                 final boolean negativeTranscriptionStrand = overlappingGenes.iterator().next().isNegativeStrand();
-                final boolean negativeReadStrand = rec.getReadNegativeStrandFlag();
-                final boolean readAndTranscriptStrandsAgree = negativeReadStrand == negativeTranscriptionStrand;
-                final boolean readOneOrUnpaired = !rec.getReadPairedFlag() || rec.getFirstOfPairFlag();
-                final boolean firstReadExpectedToAgree = strandSpecificity == StrandSpecificity.FIRST_READ_TRANSCRIPTION_STRAND;
-                final boolean thisReadExpectedToAgree = readOneOrUnpaired == firstReadExpectedToAgree;
-                // If the read strand is the same as the strand of the transcript, and the end is the one that is supposed to agree,
-                // then the strand specificity for this read is correct.
-                // -- OR --
-                // If the read strand is not the same as the strand of the transcript, and the end is not the one that is supposed
-                // to agree, then the strand specificity for this read is correct.
-                if (readAndTranscriptStrandsAgree == thisReadExpectedToAgree) {
-                    ++metrics.CORRECT_STRAND_READS;
-                } else {
-                    ++metrics.INCORRECT_STRAND_READS;
+                if (strandSpecificity != StrandSpecificity.NONE) {
+                    final boolean negativeReadStrand            = rec.getReadNegativeStrandFlag();
+                    final boolean readAndTranscriptStrandsAgree = negativeReadStrand == negativeTranscriptionStrand;
+                    final boolean readOneOrUnpaired             = !rec.getReadPairedFlag() || rec.getFirstOfPairFlag();
+                    final boolean firstReadExpectedToAgree      = strandSpecificity == StrandSpecificity.FIRST_READ_TRANSCRIPTION_STRAND;
+                    final boolean thisReadExpectedToAgree       = readOneOrUnpaired == firstReadExpectedToAgree;
+                    // If the read strand is the same as the strand of the transcript, and the end is the one that is supposed to agree,
+                    // then the strand specificity for this read is correct.
+                    // -- OR --
+                    // If the read strand is not the same as the strand of the transcript, and the end is not the one that is supposed
+                    // to agree, then the strand specificity for this read is correct.
+                    if (readAndTranscriptStrandsAgree == thisReadExpectedToAgree) {
+                        ++metrics.CORRECT_STRAND_READS;
+                    } else {
+                        ++metrics.INCORRECT_STRAND_READS;
+                    }
+                }
+
+                if (!rec.getReadPairedFlag() || SamPairUtil.getPairOrientation(rec) == SamPairUtil.PairOrientation.FR) {
+                    final boolean firstReadNegativeStrand;
+                    // Get the strand of the first read.
+                    if (!rec.getReadPairedFlag() || rec.getFirstOfPairFlag()) firstReadNegativeStrand = rec.getReadNegativeStrandFlag();
+                    else firstReadNegativeStrand = rec.getMateNegativeStrandFlag();
+                    if (firstReadNegativeStrand == negativeTranscriptionStrand) {
+                        ++metrics.PCT_FIRST_READ_TRANSCRIPTION_STRAND_READS;
+                    }
+                    else {
+                        ++metrics.PCT_SECOND_READ_TRANSCRIPTION_STRAND_READS;
+                    }
                 }
             }
-
         }
 
         protected int getNumAlignedBases(SAMRecord rec) {
@@ -276,6 +286,12 @@ public class RnaSeqMetricsCollector extends SAMRecordMultiLevelCollector<RnaSeqM
 
             if (metrics.CORRECT_STRAND_READS > 0 || metrics.INCORRECT_STRAND_READS > 0) {
                 metrics.PCT_CORRECT_STRAND_READS = metrics.CORRECT_STRAND_READS/(double)(metrics.CORRECT_STRAND_READS + metrics.INCORRECT_STRAND_READS);
+            }
+
+            final double readsExamined = metrics.PCT_FIRST_READ_TRANSCRIPTION_STRAND_READS + metrics.PCT_SECOND_READ_TRANSCRIPTION_STRAND_READS;
+            if (0 < readsExamined) {
+                metrics.PCT_FIRST_READ_TRANSCRIPTION_STRAND_READS /= readsExamined;
+                metrics.PCT_SECOND_READ_TRANSCRIPTION_STRAND_READS /= readsExamined;
             }
         }
 
