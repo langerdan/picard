@@ -229,11 +229,12 @@ public class RnaSeqMetricsCollector extends SAMRecordMultiLevelCollector<RnaSeqM
             // Strand-specificity is tallied on read basis rather than base at a time.  A read that aligns to more than one
             // gene is not counted.
             if (overlapsExon && overlappingGenes.size() == 1) {
-                final boolean negativeTranscriptionStrand = overlappingGenes.iterator().next().isNegativeStrand();
+                final Gene gene                           = overlappingGenes.iterator().next();
+                final boolean negativeTranscriptionStrand = gene.isNegativeStrand();
+                final boolean readOneOrUnpaired           = !rec.getReadPairedFlag() || rec.getFirstOfPairFlag();
+                final boolean negativeReadStrand          = rec.getReadNegativeStrandFlag();
                 if (strandSpecificity != StrandSpecificity.NONE) {
-                    final boolean negativeReadStrand            = rec.getReadNegativeStrandFlag();
                     final boolean readAndTranscriptStrandsAgree = negativeReadStrand == negativeTranscriptionStrand;
-                    final boolean readOneOrUnpaired             = !rec.getReadPairedFlag() || rec.getFirstOfPairFlag();
                     final boolean firstReadExpectedToAgree      = strandSpecificity == StrandSpecificity.FIRST_READ_TRANSCRIPTION_STRAND;
                     final boolean thisReadExpectedToAgree       = readOneOrUnpaired == firstReadExpectedToAgree;
                     // If the read strand is the same as the strand of the transcript, and the end is the one that is supposed to agree,
@@ -248,16 +249,36 @@ public class RnaSeqMetricsCollector extends SAMRecordMultiLevelCollector<RnaSeqM
                     }
                 }
 
-                if (!rec.getReadPairedFlag() || SamPairUtil.getPairOrientation(rec) == SamPairUtil.PairOrientation.FR) {
-                    final boolean firstReadNegativeStrand;
-                    // Get the strand of the first read.
-                    if (!rec.getReadPairedFlag() || rec.getFirstOfPairFlag()) firstReadNegativeStrand = rec.getReadNegativeStrandFlag();
-                    else firstReadNegativeStrand = rec.getMateNegativeStrandFlag();
-                    if (firstReadNegativeStrand == negativeTranscriptionStrand) {
-                        ++metrics.PCT_FIRST_READ_TRANSCRIPTION_STRAND_READS;
+                // Count templates only once rather than individual reads/records
+                if (readOneOrUnpaired) {
+                    // Check that for paired end reads they are in the proper orientation (FR) and that the entire
+                    // template is enclosed in the gene.
+                    final boolean properOrientation;
+                    final int leftMostAlignedBase, rightMostAlignedBase;
+                    if (rec.getReadPairedFlag()) {
+                        if (rec.getMateUnmappedFlag()) {
+                            properOrientation   = false; // mate is unmapped!
+                            leftMostAlignedBase = rightMostAlignedBase = 0;
+                        }
+                        else {
+                            properOrientation    = SamPairUtil.getPairOrientation(rec) == SamPairUtil.PairOrientation.FR;
+                            leftMostAlignedBase  = Math.min(rec.getAlignmentStart(), rec.getMateAlignmentStart());
+                            rightMostAlignedBase = Math.max(rec.getAlignmentEnd(), SAMUtils.getMateAlignmentEnd(rec)); // requires the mate cigar
+                        }
                     }
                     else {
-                        ++metrics.PCT_SECOND_READ_TRANSCRIPTION_STRAND_READS;
+                        properOrientation    = true; // can only be false for paired end reads
+                        leftMostAlignedBase  = rec.getAlignmentStart();
+                        rightMostAlignedBase = rec.getAlignmentEnd();
+                    }
+
+                    if (properOrientation && CoordMath.encloses(gene.getStart(), gene.getEnd(), leftMostAlignedBase, rightMostAlignedBase)) {
+                        if (negativeReadStrand == negativeTranscriptionStrand) {
+                            ++metrics.PCT_FIRST_READ_TRANSCRIPTION_STRAND_READS;
+                        }
+                        else {
+                            ++metrics.PCT_SECOND_READ_TRANSCRIPTION_STRAND_READS;
+                        }
                     }
                 }
             }

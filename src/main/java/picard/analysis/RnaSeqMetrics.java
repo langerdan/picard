@@ -67,15 +67,15 @@ public class RnaSeqMetrics extends MultilevelMetrics {
     public long INCORRECT_STRAND_READS;
 
     /** The fraction of reads that support the model where R1 is on the strand of transcription and R2 is on the
-     * opposite strand of transcription.  For unpaired reads, this is the fraction of reads that are on the same strand
-     * than that of the transcription strand.
+     * opposite strand.  For unpaired reads, this is the fraction of reads that are on the same strand than that of the
+     * transcription strand.
      */
     public double PCT_FIRST_READ_TRANSCRIPTION_STRAND_READS;
 
     /**
      * The fraction of reads that support the model where R2 is on the strand of transcription and R1 is on the opposite
-     * strand of transcription.  For unpaired reads, this is the fraction of reads that are on the opposite strand than
-     * that of the transcription strand.
+     * strand.  For unpaired reads, this is the fraction of reads that are on the opposite strand than that of the
+     * transcription strand.
      */
     public double PCT_SECOND_READ_TRANSCRIPTION_STRAND_READS;
 
