@@ -66,18 +66,42 @@ public class RnaSeqMetrics extends MultilevelMetrics {
     /** Number of aligned reads that are mapped to the incorrect strand.  0 if library is not strand-specific. */
     public long INCORRECT_STRAND_READS;
 
+    /** The number of reads that support the model where R1 is on the strand of transcription and R2 is on the
+     * opposite strand.  For unpaired reads, it is the fraction of read that are on the transcription strand (out of all
+     * the reads).
+     */
+    public long NUM_FIRST_READ_TRANSCRIPTION_STRAND_READS;
+
+    /**
+     * The fraction of reads that support the model where R2 is on the strand of transcription and R1 is on the opposite
+     * strand.  For unpaired reads, it is the fraction of read that are on opposite strand than that of the the
+     * transcription strand (out of all the reads).
+     */
+    public long NUM_SECOND_READ_TRANSCRIPTION_STRAND_READS;
+
+    /**
+     * The fraction of reads for which the transcription strand model could not be inferred.
+     */
+    public long NUM_UNEXPLAINED_TRANSCRIPTION_STRAND_READS;
+
+
     /** The fraction of reads that support the model where R1 is on the strand of transcription and R2 is on the
-     * opposite strand.  For unpaired reads, this is the fraction of reads that are on the same strand than that of the
-     * transcription strand.
+     * opposite strand.  For unpaired reads, it is the fraction of read that are on the transcription strand (out of all
+     * the reads).
      */
     public double PCT_FIRST_READ_TRANSCRIPTION_STRAND_READS;
 
     /**
      * The fraction of reads that support the model where R2 is on the strand of transcription and R1 is on the opposite
-     * strand.  For unpaired reads, this is the fraction of reads that are on the opposite strand than that of the
-     * transcription strand.
+     * strand.  For unpaired reads, it is the fraction of read that are on opposite strand than that of the the
+     * transcription strand (out of all the reads).
      */
     public double PCT_SECOND_READ_TRANSCRIPTION_STRAND_READS;
+
+    /**
+     * The fraction of reads for which the transcription strand model could not be inferred.
+     */
+    public double PCT_UNEXPLAINED_TRANSCRIPTION_STRAND_READS;
 
     /** Fraction of PF_ALIGNED_BASES that mapped to regions encoding ribosomal RNA, RIBOSOMAL_BASES/PF_ALIGNED_BASES */
     public Double PCT_RIBOSOMAL_BASES;

@@ -23,12 +23,7 @@
  */
 package picard.analysis;
 
-import htsjdk.samtools.SAMFileHeader;
-import htsjdk.samtools.SAMFileWriter;
-import htsjdk.samtools.SAMFileWriterFactory;
-import htsjdk.samtools.SAMReadGroupRecord;
-import htsjdk.samtools.SAMRecord;
-import htsjdk.samtools.SAMRecordSetBuilder;
+import htsjdk.samtools.*;
 import htsjdk.samtools.metrics.MetricsFile;
 import htsjdk.samtools.util.Interval;
 import htsjdk.samtools.util.IntervalList;
@@ -92,7 +87,7 @@ public class CollectRnaSeqMetricsTest extends CommandLineProgramTest {
                 "REF_FLAT=" +            getRefFlatFile(sequence).getAbsolutePath(),
                 "RIBOSOMAL_INTERVALS=" + rRnaIntervalsFile.getAbsolutePath(),
                 "STRAND_SPECIFICITY=SECOND_READ_TRANSCRIPTION_STRAND",
-                "IGNORE_SEQUENCE=" +ignoredSequence
+                "IGNORE_SEQUENCE=" + ignoredSequence
         };
         Assert.assertEquals(runPicardCommandLine(args), 0);
 
@@ -110,8 +105,12 @@ public class CollectRnaSeqMetricsTest extends CommandLineProgramTest {
         Assert.assertEquals(metrics.CORRECT_STRAND_READS, 3);
         Assert.assertEquals(metrics.INCORRECT_STRAND_READS, 4);
         Assert.assertEquals(metrics.IGNORED_READS, 1);
-        Assert.assertEquals(metrics.PCT_FIRST_READ_TRANSCRIPTION_STRAND_READS, 0.333333);
-        Assert.assertEquals(metrics.PCT_SECOND_READ_TRANSCRIPTION_STRAND_READS, 0.666667);
+        Assert.assertEquals(metrics.NUM_FIRST_READ_TRANSCRIPTION_STRAND_READS, 1);
+        Assert.assertEquals(metrics.NUM_SECOND_READ_TRANSCRIPTION_STRAND_READS, 2);
+        Assert.assertEquals(metrics.NUM_UNEXPLAINED_TRANSCRIPTION_STRAND_READS, 2);
+        Assert.assertEquals(metrics.PCT_FIRST_READ_TRANSCRIPTION_STRAND_READS, 0.2);
+        Assert.assertEquals(metrics.PCT_SECOND_READ_TRANSCRIPTION_STRAND_READS, 0.4);
+        Assert.assertEquals(metrics.PCT_UNEXPLAINED_TRANSCRIPTION_STRAND_READS, 0.4);
     }
 
     @Test
@@ -167,7 +166,7 @@ public class CollectRnaSeqMetricsTest extends CommandLineProgramTest {
                 "REF_FLAT=" +            getRefFlatFile(sequence).getAbsolutePath(),
                 "RIBOSOMAL_INTERVALS=" + rRnaIntervalsFile.getAbsolutePath(),
                 "STRAND_SPECIFICITY=SECOND_READ_TRANSCRIPTION_STRAND",
-                "IGNORE_SEQUENCE=" +ignoredSequence,
+                "IGNORE_SEQUENCE=" + ignoredSequence,
                 "LEVEL=null",
                 "LEVEL=SAMPLE",
                 "LEVEL=LIBRARY"
@@ -189,8 +188,12 @@ public class CollectRnaSeqMetricsTest extends CommandLineProgramTest {
                 Assert.assertEquals(metrics.CORRECT_STRAND_READS, 3);
                 Assert.assertEquals(metrics.INCORRECT_STRAND_READS, 4);
                 Assert.assertEquals(metrics.IGNORED_READS, 1);
-                Assert.assertEquals(metrics.PCT_FIRST_READ_TRANSCRIPTION_STRAND_READS, 0.333333);
-                Assert.assertEquals(metrics.PCT_SECOND_READ_TRANSCRIPTION_STRAND_READS, 0.666667);
+                Assert.assertEquals(metrics.NUM_FIRST_READ_TRANSCRIPTION_STRAND_READS, 1);
+                Assert.assertEquals(metrics.NUM_SECOND_READ_TRANSCRIPTION_STRAND_READS, 2);
+                Assert.assertEquals(metrics.NUM_UNEXPLAINED_TRANSCRIPTION_STRAND_READS, 2);
+                Assert.assertEquals(metrics.PCT_FIRST_READ_TRANSCRIPTION_STRAND_READS, 0.2);
+                Assert.assertEquals(metrics.PCT_SECOND_READ_TRANSCRIPTION_STRAND_READS, 0.4);
+                Assert.assertEquals(metrics.PCT_UNEXPLAINED_TRANSCRIPTION_STRAND_READS, 0.4);
             }
             else if (metrics.LIBRARY.equals("foo")) {
                 Assert.assertEquals(metrics.PF_ALIGNED_BASES, 216);
@@ -203,8 +206,12 @@ public class CollectRnaSeqMetricsTest extends CommandLineProgramTest {
                 Assert.assertEquals(metrics.CORRECT_STRAND_READS, 3);
                 Assert.assertEquals(metrics.INCORRECT_STRAND_READS, 2);
                 Assert.assertEquals(metrics.IGNORED_READS, 0);
+                Assert.assertEquals(metrics.NUM_FIRST_READ_TRANSCRIPTION_STRAND_READS, 0);
+                Assert.assertEquals(metrics.NUM_SECOND_READ_TRANSCRIPTION_STRAND_READS, 2);
+                Assert.assertEquals(metrics.NUM_UNEXPLAINED_TRANSCRIPTION_STRAND_READS, 1);
                 Assert.assertEquals(metrics.PCT_FIRST_READ_TRANSCRIPTION_STRAND_READS, 0.0);
-                Assert.assertEquals(metrics.PCT_SECOND_READ_TRANSCRIPTION_STRAND_READS, 1.0);
+                Assert.assertEquals(metrics.PCT_SECOND_READ_TRANSCRIPTION_STRAND_READS, 0.666667);
+                Assert.assertEquals(metrics.PCT_UNEXPLAINED_TRANSCRIPTION_STRAND_READS, 0.333333);
             }
             else if (metrics.LIBRARY.equals("bar")) {
                 Assert.assertEquals(metrics.PF_ALIGNED_BASES, 180);
@@ -217,8 +224,12 @@ public class CollectRnaSeqMetricsTest extends CommandLineProgramTest {
                 Assert.assertEquals(metrics.CORRECT_STRAND_READS, 0);
                 Assert.assertEquals(metrics.INCORRECT_STRAND_READS, 2);
                 Assert.assertEquals(metrics.IGNORED_READS, 1);
-                Assert.assertEquals(metrics.PCT_FIRST_READ_TRANSCRIPTION_STRAND_READS, 1.0);
+                Assert.assertEquals(metrics.NUM_FIRST_READ_TRANSCRIPTION_STRAND_READS, 1);
+                Assert.assertEquals(metrics.NUM_SECOND_READ_TRANSCRIPTION_STRAND_READS, 0);
+                Assert.assertEquals(metrics.NUM_UNEXPLAINED_TRANSCRIPTION_STRAND_READS, 1);
+                Assert.assertEquals(metrics.PCT_FIRST_READ_TRANSCRIPTION_STRAND_READS, 0.5);
                 Assert.assertEquals(metrics.PCT_SECOND_READ_TRANSCRIPTION_STRAND_READS, 0.0);
+                Assert.assertEquals(metrics.PCT_UNEXPLAINED_TRANSCRIPTION_STRAND_READS, 0.5);
             }
         }
     }
@@ -232,13 +243,14 @@ public class CollectRnaSeqMetricsTest extends CommandLineProgramTest {
         final SAMRecordSetBuilder builder = new SAMRecordSetBuilder(true, SAMFileHeader.SortOrder.coordinate);
         // Set seed so that strandedness is consistent among runs.
         builder.setRandomSeed(0);
+        builder.setReadLength(50);
         final int sequenceIndex = builder.getHeader().getSequenceIndex(sequence);
 
-        // Reads that start *before* the gene: not counted
+        // Reads that start *before* the gene: count as unexamined
         builder.addPair("pair_prior_1", sequenceIndex, 45, 50, false, false, "50M", "50M", true, false, -1);
         builder.addPair("pair_prior_2", sequenceIndex, 49, 50, false, false, "50M", "50M", true, false, -1);
 
-        // Read that is enclosed in the gene, but one end does not map: not counted
+        // Read that is enclosed in the gene, but one end does not map: not counted: count as unexamined
         builder.addPair("read_one_end_unmapped", sequenceIndex, 50, 51, false, true, "50M", null, false, false, -1);
 
         // Reads that are enclosed in the gene, paired and frag: one count per template
@@ -250,6 +262,17 @@ public class CollectRnaSeqMetricsTest extends CommandLineProgramTest {
         // Read that starts *after* the gene: not counted
         builder.addPair("pair_after_1", sequenceIndex, 545, 550, false, false, "50M", "50M", true, false, -1);
         builder.addPair("pair_after_2", sequenceIndex, 549, 550, false, false, "50M", "50M", true, false, -1);
+
+        // A read that uses the read length instead of the mate cigar
+        builder.addFrag("frag_enclosed_forward_no_mate_cigar", sequenceIndex, 150, false).setAttribute(SAMTag.MC.name(), null);
+
+        // Duplicate reads are counted
+        builder.addFrag("frag_duplicate", sequenceIndex, 150, false).setDuplicateReadFlag(true);
+
+        // These reads should be ignored.
+        builder.addFrag("frag_secondary", sequenceIndex, 150, false).setNotPrimaryAlignmentFlag(true);
+        builder.addFrag("frag_supplementary", sequenceIndex, 150, false).setSupplementaryAlignmentFlag(true);
+        builder.addFrag("frag_qc_failure", sequenceIndex, 150, false).setReadFailsVendorQualityCheckFlag(true);
 
         final File samFile = File.createTempFile("tmp.collectRnaSeqMetrics.", ".sam");
         samFile.deleteOnExit();
@@ -276,7 +299,7 @@ public class CollectRnaSeqMetricsTest extends CommandLineProgramTest {
                 "REF_FLAT=" +            getRefFlatFile(sequence).getAbsolutePath(),
                 "RIBOSOMAL_INTERVALS=" + rRnaIntervalsFile.getAbsolutePath(),
                 "STRAND_SPECIFICITY=SECOND_READ_TRANSCRIPTION_STRAND",
-                "IGNORE_SEQUENCE=" +ignoredSequence
+                "IGNORE_SEQUENCE=" + ignoredSequence
         };
         Assert.assertEquals(runPicardCommandLine(args), 0);
 
@@ -284,18 +307,22 @@ public class CollectRnaSeqMetricsTest extends CommandLineProgramTest {
         output.read(new FileReader(metricsFile));
 
         final RnaSeqMetrics metrics = output.getMetrics().get(0);
-        Assert.assertEquals(metrics.PF_ALIGNED_BASES, 722);
-        Assert.assertEquals(metrics.PF_BASES, 576);
+        Assert.assertEquals(metrics.PF_ALIGNED_BASES, 900);
+        Assert.assertEquals(metrics.PF_BASES, 950);
         Assert.assertEquals(metrics.RIBOSOMAL_BASES.longValue(), 0L);
-        Assert.assertEquals(metrics.CODING_BASES, 293);
+        Assert.assertEquals(metrics.CODING_BASES, 471);
         Assert.assertEquals(metrics.UTR_BASES, 125);
         Assert.assertEquals(metrics.INTRONIC_BASES, 98);
         Assert.assertEquals(metrics.INTERGENIC_BASES, 206);
         Assert.assertEquals(metrics.CORRECT_STRAND_READS, 7);
-        Assert.assertEquals(metrics.INCORRECT_STRAND_READS, 4);
+        Assert.assertEquals(metrics.INCORRECT_STRAND_READS, 6);
         Assert.assertEquals(metrics.IGNORED_READS, 0);
-        Assert.assertEquals(metrics.PCT_FIRST_READ_TRANSCRIPTION_STRAND_READS, 0.5);
-        Assert.assertEquals(metrics.PCT_SECOND_READ_TRANSCRIPTION_STRAND_READS, 0.5);
+        Assert.assertEquals(metrics.NUM_FIRST_READ_TRANSCRIPTION_STRAND_READS, 4);
+        Assert.assertEquals(metrics.NUM_SECOND_READ_TRANSCRIPTION_STRAND_READS, 2);
+        Assert.assertEquals(metrics.NUM_UNEXPLAINED_TRANSCRIPTION_STRAND_READS, 3);
+        Assert.assertEquals(metrics.PCT_FIRST_READ_TRANSCRIPTION_STRAND_READS, 0.444444);
+        Assert.assertEquals(metrics.PCT_SECOND_READ_TRANSCRIPTION_STRAND_READS, 0.222222);
+        Assert.assertEquals(metrics.PCT_UNEXPLAINED_TRANSCRIPTION_STRAND_READS, 0.333333);
     }
 
     public File getRefFlatFile(String sequence) throws Exception {

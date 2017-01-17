@@ -226,9 +226,13 @@ public class RnaSeqMetricsCollector extends SAMRecordMultiLevelCollector<RnaSeqM
                 }
             }
 
+            if (metrics.PF_ALIGNED_BASES > metrics.PF_BASES) {
+                throw new IllegalStateException("HUH?");
+            }
+
             // Strand-specificity is tallied on read basis rather than base at a time.  A read that aligns to more than one
             // gene is not counted.
-            if (overlapsExon && overlappingGenes.size() == 1) {
+            if (!rec.getSupplementaryAlignmentFlag() && overlapsExon && overlappingGenes.size() == 1) {
                 final Gene gene                           = overlappingGenes.iterator().next();
                 final boolean negativeTranscriptionStrand = gene.isNegativeStrand();
                 final boolean readOneOrUnpaired           = !rec.getReadPairedFlag() || rec.getFirstOfPairFlag();
@@ -259,14 +263,17 @@ public class RnaSeqMetricsCollector extends SAMRecordMultiLevelCollector<RnaSeqM
                         if (rec.getMateUnmappedFlag()) {
                             properOrientation   = false; // mate is unmapped!
                             leftMostAlignedBase = rightMostAlignedBase = 0;
-                        }
-                        else {
+                        } else {
+                            // Get the alignment length of the mate.  Approximate it with the current read length if no
+                            // mate cigar is found.
+                            final Cigar mateCigar         = SAMUtils.getMateCigar(rec);
+                            final int mateReferenceLength = (mateCigar == null) ? rec.getReadLength() : mateCigar.getReferenceLength();
+                            final int mateAlignmentEnd    =  CoordMath.getEnd(rec.getMateAlignmentStart(), mateReferenceLength);
                             properOrientation    = SamPairUtil.getPairOrientation(rec) == SamPairUtil.PairOrientation.FR;
                             leftMostAlignedBase  = Math.min(rec.getAlignmentStart(), rec.getMateAlignmentStart());
-                            rightMostAlignedBase = Math.max(rec.getAlignmentEnd(), SAMUtils.getMateAlignmentEnd(rec)); // requires the mate cigar
+                            rightMostAlignedBase = Math.max(rec.getAlignmentEnd(), mateAlignmentEnd);
                         }
-                    }
-                    else {
+                    } else {
                         properOrientation    = true; // can only be false for paired end reads
                         leftMostAlignedBase  = rec.getAlignmentStart();
                         rightMostAlignedBase = rec.getAlignmentEnd();
@@ -274,11 +281,12 @@ public class RnaSeqMetricsCollector extends SAMRecordMultiLevelCollector<RnaSeqM
 
                     if (properOrientation && CoordMath.encloses(gene.getStart(), gene.getEnd(), leftMostAlignedBase, rightMostAlignedBase)) {
                         if (negativeReadStrand == negativeTranscriptionStrand) {
-                            ++metrics.PCT_FIRST_READ_TRANSCRIPTION_STRAND_READS;
+                            ++metrics.NUM_FIRST_READ_TRANSCRIPTION_STRAND_READS;
+                        } else {
+                            ++metrics.NUM_SECOND_READ_TRANSCRIPTION_STRAND_READS;
                         }
-                        else {
-                            ++metrics.PCT_SECOND_READ_TRANSCRIPTION_STRAND_READS;
-                        }
+                    } else {
+                        ++metrics.NUM_UNEXPLAINED_TRANSCRIPTION_STRAND_READS;
                     }
                 }
             }
@@ -309,10 +317,13 @@ public class RnaSeqMetricsCollector extends SAMRecordMultiLevelCollector<RnaSeqM
                 metrics.PCT_CORRECT_STRAND_READS = metrics.CORRECT_STRAND_READS/(double)(metrics.CORRECT_STRAND_READS + metrics.INCORRECT_STRAND_READS);
             }
 
-            final double readsExamined = metrics.PCT_FIRST_READ_TRANSCRIPTION_STRAND_READS + metrics.PCT_SECOND_READ_TRANSCRIPTION_STRAND_READS;
+            final long readsExamined = metrics.NUM_FIRST_READ_TRANSCRIPTION_STRAND_READS
+                    + metrics.NUM_SECOND_READ_TRANSCRIPTION_STRAND_READS
+                    + metrics.NUM_UNEXPLAINED_TRANSCRIPTION_STRAND_READS;
             if (0 < readsExamined) {
-                metrics.PCT_FIRST_READ_TRANSCRIPTION_STRAND_READS /= readsExamined;
-                metrics.PCT_SECOND_READ_TRANSCRIPTION_STRAND_READS /= readsExamined;
+                metrics.PCT_FIRST_READ_TRANSCRIPTION_STRAND_READS  = metrics.NUM_FIRST_READ_TRANSCRIPTION_STRAND_READS  / (double) readsExamined;
+                metrics.PCT_SECOND_READ_TRANSCRIPTION_STRAND_READS = metrics.NUM_SECOND_READ_TRANSCRIPTION_STRAND_READS / (double) readsExamined;
+                metrics.PCT_UNEXPLAINED_TRANSCRIPTION_STRAND_READS = metrics.NUM_UNEXPLAINED_TRANSCRIPTION_STRAND_READS / (double) readsExamined;
             }
         }
 
