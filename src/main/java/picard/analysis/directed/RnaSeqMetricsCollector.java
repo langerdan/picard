@@ -226,10 +226,6 @@ public class RnaSeqMetricsCollector extends SAMRecordMultiLevelCollector<RnaSeqM
                 }
             }
 
-            if (metrics.PF_ALIGNED_BASES > metrics.PF_BASES) {
-                throw new IllegalStateException("HUH?");
-            }
-
             // Strand-specificity is tallied on read basis rather than base at a time.  A read that aligns to more than one
             // gene is not counted.
             if (!rec.getSupplementaryAlignmentFlag() && overlapsExon && overlappingGenes.size() == 1) {
@@ -281,9 +277,9 @@ public class RnaSeqMetricsCollector extends SAMRecordMultiLevelCollector<RnaSeqM
 
                     if (properOrientation && CoordMath.encloses(gene.getStart(), gene.getEnd(), leftMostAlignedBase, rightMostAlignedBase)) {
                         if (negativeReadStrand == negativeTranscriptionStrand) {
-                            ++metrics.NUM_FIRST_READ_TRANSCRIPTION_STRAND_READS;
+                            ++metrics.NUM_R1_TRANSCRIPTION_STRAND_READS;
                         } else {
-                            ++metrics.NUM_SECOND_READ_TRANSCRIPTION_STRAND_READS;
+                            ++metrics.NUM_R2_TRANSCRIPTION_STRAND_READS;
                         }
                     } else {
                         ++metrics.NUM_UNEXPLAINED_TRANSCRIPTION_STRAND_READS;
@@ -317,13 +313,10 @@ public class RnaSeqMetricsCollector extends SAMRecordMultiLevelCollector<RnaSeqM
                 metrics.PCT_CORRECT_STRAND_READS = metrics.CORRECT_STRAND_READS/(double)(metrics.CORRECT_STRAND_READS + metrics.INCORRECT_STRAND_READS);
             }
 
-            final long readsExamined = metrics.NUM_FIRST_READ_TRANSCRIPTION_STRAND_READS
-                    + metrics.NUM_SECOND_READ_TRANSCRIPTION_STRAND_READS
-                    + metrics.NUM_UNEXPLAINED_TRANSCRIPTION_STRAND_READS;
+            final long readsExamined = metrics.NUM_R1_TRANSCRIPTION_STRAND_READS + metrics.NUM_R2_TRANSCRIPTION_STRAND_READS;
             if (0 < readsExamined) {
-                metrics.PCT_FIRST_READ_TRANSCRIPTION_STRAND_READS  = metrics.NUM_FIRST_READ_TRANSCRIPTION_STRAND_READS  / (double) readsExamined;
-                metrics.PCT_SECOND_READ_TRANSCRIPTION_STRAND_READS = metrics.NUM_SECOND_READ_TRANSCRIPTION_STRAND_READS / (double) readsExamined;
-                metrics.PCT_UNEXPLAINED_TRANSCRIPTION_STRAND_READS = metrics.NUM_UNEXPLAINED_TRANSCRIPTION_STRAND_READS / (double) readsExamined;
+                metrics.PCT_R1_TRANSCRIPTION_STRAND_READS = metrics.NUM_R1_TRANSCRIPTION_STRAND_READS / (double) readsExamined;
+                metrics.PCT_R2_TRANSCRIPTION_STRAND_READS = metrics.NUM_R2_TRANSCRIPTION_STRAND_READS / (double) readsExamined;
             }
         }
 

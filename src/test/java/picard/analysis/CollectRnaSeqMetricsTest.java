@@ -105,12 +105,11 @@ public class CollectRnaSeqMetricsTest extends CommandLineProgramTest {
         Assert.assertEquals(metrics.CORRECT_STRAND_READS, 3);
         Assert.assertEquals(metrics.INCORRECT_STRAND_READS, 4);
         Assert.assertEquals(metrics.IGNORED_READS, 1);
-        Assert.assertEquals(metrics.NUM_FIRST_READ_TRANSCRIPTION_STRAND_READS, 1);
-        Assert.assertEquals(metrics.NUM_SECOND_READ_TRANSCRIPTION_STRAND_READS, 2);
+        Assert.assertEquals(metrics.NUM_R1_TRANSCRIPTION_STRAND_READS, 1);
+        Assert.assertEquals(metrics.NUM_R2_TRANSCRIPTION_STRAND_READS, 2);
         Assert.assertEquals(metrics.NUM_UNEXPLAINED_TRANSCRIPTION_STRAND_READS, 2);
-        Assert.assertEquals(metrics.PCT_FIRST_READ_TRANSCRIPTION_STRAND_READS, 0.2);
-        Assert.assertEquals(metrics.PCT_SECOND_READ_TRANSCRIPTION_STRAND_READS, 0.4);
-        Assert.assertEquals(metrics.PCT_UNEXPLAINED_TRANSCRIPTION_STRAND_READS, 0.4);
+        Assert.assertEquals(metrics.PCT_R1_TRANSCRIPTION_STRAND_READS, 0.333333);
+        Assert.assertEquals(metrics.PCT_R2_TRANSCRIPTION_STRAND_READS, 0.666667);
     }
 
     @Test
@@ -188,12 +187,11 @@ public class CollectRnaSeqMetricsTest extends CommandLineProgramTest {
                 Assert.assertEquals(metrics.CORRECT_STRAND_READS, 3);
                 Assert.assertEquals(metrics.INCORRECT_STRAND_READS, 4);
                 Assert.assertEquals(metrics.IGNORED_READS, 1);
-                Assert.assertEquals(metrics.NUM_FIRST_READ_TRANSCRIPTION_STRAND_READS, 1);
-                Assert.assertEquals(metrics.NUM_SECOND_READ_TRANSCRIPTION_STRAND_READS, 2);
+                Assert.assertEquals(metrics.NUM_R1_TRANSCRIPTION_STRAND_READS, 1);
+                Assert.assertEquals(metrics.NUM_R2_TRANSCRIPTION_STRAND_READS, 2);
                 Assert.assertEquals(metrics.NUM_UNEXPLAINED_TRANSCRIPTION_STRAND_READS, 2);
-                Assert.assertEquals(metrics.PCT_FIRST_READ_TRANSCRIPTION_STRAND_READS, 0.2);
-                Assert.assertEquals(metrics.PCT_SECOND_READ_TRANSCRIPTION_STRAND_READS, 0.4);
-                Assert.assertEquals(metrics.PCT_UNEXPLAINED_TRANSCRIPTION_STRAND_READS, 0.4);
+                Assert.assertEquals(metrics.PCT_R1_TRANSCRIPTION_STRAND_READS, 0.333333);
+                Assert.assertEquals(metrics.PCT_R2_TRANSCRIPTION_STRAND_READS, 0.666667);
             }
             else if (metrics.LIBRARY.equals("foo")) {
                 Assert.assertEquals(metrics.PF_ALIGNED_BASES, 216);
@@ -206,12 +204,11 @@ public class CollectRnaSeqMetricsTest extends CommandLineProgramTest {
                 Assert.assertEquals(metrics.CORRECT_STRAND_READS, 3);
                 Assert.assertEquals(metrics.INCORRECT_STRAND_READS, 2);
                 Assert.assertEquals(metrics.IGNORED_READS, 0);
-                Assert.assertEquals(metrics.NUM_FIRST_READ_TRANSCRIPTION_STRAND_READS, 0);
-                Assert.assertEquals(metrics.NUM_SECOND_READ_TRANSCRIPTION_STRAND_READS, 2);
+                Assert.assertEquals(metrics.NUM_R1_TRANSCRIPTION_STRAND_READS, 0);
+                Assert.assertEquals(metrics.NUM_R2_TRANSCRIPTION_STRAND_READS, 2);
                 Assert.assertEquals(metrics.NUM_UNEXPLAINED_TRANSCRIPTION_STRAND_READS, 1);
-                Assert.assertEquals(metrics.PCT_FIRST_READ_TRANSCRIPTION_STRAND_READS, 0.0);
-                Assert.assertEquals(metrics.PCT_SECOND_READ_TRANSCRIPTION_STRAND_READS, 0.666667);
-                Assert.assertEquals(metrics.PCT_UNEXPLAINED_TRANSCRIPTION_STRAND_READS, 0.333333);
+                Assert.assertEquals(metrics.PCT_R1_TRANSCRIPTION_STRAND_READS, 0.0);
+                Assert.assertEquals(metrics.PCT_R2_TRANSCRIPTION_STRAND_READS, 1.0);
             }
             else if (metrics.LIBRARY.equals("bar")) {
                 Assert.assertEquals(metrics.PF_ALIGNED_BASES, 180);
@@ -224,12 +221,11 @@ public class CollectRnaSeqMetricsTest extends CommandLineProgramTest {
                 Assert.assertEquals(metrics.CORRECT_STRAND_READS, 0);
                 Assert.assertEquals(metrics.INCORRECT_STRAND_READS, 2);
                 Assert.assertEquals(metrics.IGNORED_READS, 1);
-                Assert.assertEquals(metrics.NUM_FIRST_READ_TRANSCRIPTION_STRAND_READS, 1);
-                Assert.assertEquals(metrics.NUM_SECOND_READ_TRANSCRIPTION_STRAND_READS, 0);
+                Assert.assertEquals(metrics.NUM_R1_TRANSCRIPTION_STRAND_READS, 1);
+                Assert.assertEquals(metrics.NUM_R2_TRANSCRIPTION_STRAND_READS, 0);
                 Assert.assertEquals(metrics.NUM_UNEXPLAINED_TRANSCRIPTION_STRAND_READS, 1);
-                Assert.assertEquals(metrics.PCT_FIRST_READ_TRANSCRIPTION_STRAND_READS, 0.5);
-                Assert.assertEquals(metrics.PCT_SECOND_READ_TRANSCRIPTION_STRAND_READS, 0.0);
-                Assert.assertEquals(metrics.PCT_UNEXPLAINED_TRANSCRIPTION_STRAND_READS, 0.5);
+                Assert.assertEquals(metrics.PCT_R1_TRANSCRIPTION_STRAND_READS, 1.0);
+                Assert.assertEquals(metrics.PCT_R2_TRANSCRIPTION_STRAND_READS, 0.0);
             }
         }
     }
@@ -250,7 +246,7 @@ public class CollectRnaSeqMetricsTest extends CommandLineProgramTest {
         builder.addPair("pair_prior_1", sequenceIndex, 45, 50, false, false, "50M", "50M", true, false, -1);
         builder.addPair("pair_prior_2", sequenceIndex, 49, 50, false, false, "50M", "50M", true, false, -1);
 
-        // Read that is enclosed in the gene, but one end does not map: not counted: count as unexamined
+        // Read that is enclosed in the gene, but one end does not map: count as unexamined
         builder.addPair("read_one_end_unmapped", sequenceIndex, 50, 51, false, true, "50M", null, false, false, -1);
 
         // Reads that are enclosed in the gene, paired and frag: one count per template
@@ -317,12 +313,11 @@ public class CollectRnaSeqMetricsTest extends CommandLineProgramTest {
         Assert.assertEquals(metrics.CORRECT_STRAND_READS, 7);
         Assert.assertEquals(metrics.INCORRECT_STRAND_READS, 6);
         Assert.assertEquals(metrics.IGNORED_READS, 0);
-        Assert.assertEquals(metrics.NUM_FIRST_READ_TRANSCRIPTION_STRAND_READS, 4);
-        Assert.assertEquals(metrics.NUM_SECOND_READ_TRANSCRIPTION_STRAND_READS, 2);
+        Assert.assertEquals(metrics.NUM_R1_TRANSCRIPTION_STRAND_READS, 4);
+        Assert.assertEquals(metrics.NUM_R2_TRANSCRIPTION_STRAND_READS, 2);
         Assert.assertEquals(metrics.NUM_UNEXPLAINED_TRANSCRIPTION_STRAND_READS, 3);
-        Assert.assertEquals(metrics.PCT_FIRST_READ_TRANSCRIPTION_STRAND_READS, 0.444444);
-        Assert.assertEquals(metrics.PCT_SECOND_READ_TRANSCRIPTION_STRAND_READS, 0.222222);
-        Assert.assertEquals(metrics.PCT_UNEXPLAINED_TRANSCRIPTION_STRAND_READS, 0.333333);
+        Assert.assertEquals(metrics.PCT_R1_TRANSCRIPTION_STRAND_READS, 0.666667);
+        Assert.assertEquals(metrics.PCT_R2_TRANSCRIPTION_STRAND_READS, 0.333333);
     }
 
     public File getRefFlatFile(String sequence) throws Exception {
